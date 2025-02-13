@@ -1,9 +1,7 @@
 package com.mbo.kafka;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -30,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * This test class uses Testcontainers to instantiate and manage an external Apache
  * Kafka broker hosted inside a Docker container.
  *
- * Therefore, one of the prerequisites for using Testcontainers is that Docker is installed on the host running this test
+ * Beware! The prerequisite for using Testcontainers is that Docker is installed on the host running this test
  *
  */
 @Testcontainers
@@ -47,7 +45,7 @@ public class KafkaTestContainersLiveTest {
     private KafkaConsumer<String, String> consumer;
 
     @Test
-    public void givenKafkaDockerContainer_whenSendingWithDefaultTemplate_thenMessageReceived() throws Exception {
+    public void givenKafkaContainer_whenSendWithProducer_thenMessageReceivedInConsumer() {
 
         KAFKA_CONTAINER.addExposedPort(9092);
         KAFKA_CONTAINER.start();
@@ -77,7 +75,7 @@ public class KafkaTestContainersLiveTest {
         ProducerRecord<String, String> producerRecord = new ProducerRecord<>("test", payload);
         producer.send(producerRecord);
 
-        ConsumerRecords<String, String> consumerRecords = consumer.poll(Duration.ofSeconds(10));
+        ConsumerRecords<String, String> consumerRecords = consumer.poll(Duration.ofSeconds(2));
         assertEquals(1, consumerRecords.count());
 
         KAFKA_CONTAINER.stop();

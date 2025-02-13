@@ -10,10 +10,10 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
-public class KafkaProducerConsumerApplication {
+public class KafkaApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(KafkaProducerConsumerApplication.class, args);
+        SpringApplication.run(KafkaApplication.class, args);
     }
 
     @Autowired
