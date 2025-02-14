@@ -27,7 +27,7 @@ import java.util.List;
 @DirtiesContext
 @EmbeddedKafka
 @TestInstance(TestInstance.Lifecycle.PER_CLASS) //This allows to use @BeforeAll annotation
-@ActiveProfiles("embedded")
+@ActiveProfiles("default")
 @Slf4j
 public class EmbeddedKafkaIntegrationTest {
 
