@@ -41,10 +41,10 @@ public class EmbeddedKafkaIntegrationTest {
     public KafkaTemplate<String, String> template;
 
     @Autowired
-    private KafkaConsumer consumer;
+    private KafkaConsumer<String, String> consumer;
 
     @Autowired
-    private KafkaProducer producer;
+    private KafkaProducer<String, String> producer;
 
     private String defaultTopic;
 

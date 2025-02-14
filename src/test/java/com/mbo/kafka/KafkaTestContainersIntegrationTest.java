@@ -19,6 +19,9 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -35,6 +38,7 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 import org.testcontainers.utility.DockerImageName;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -44,10 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * Beware! The prerequisite for using Testcontainers is that Docker is installed on the host running this test
  *
  */
-//@SpringBootTest
 @Testcontainers
 @Slf4j
-public class KafkaTestContainersLiveTest {
+public class KafkaTestContainersIntegrationTest {
 
     @Container
     private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:5.4.3"));
@@ -64,7 +67,10 @@ public class KafkaTestContainersLiveTest {
 
     private static final short REPLICATION_FACTOR = 1;
 
-    private static final Duration TIMEOUT_WAIT_FOR_MESSAGES = Duration.ofSeconds(20);
+    private static final Duration TIMEOUT_WAIT_FOR_MESSAGES = Duration.ofSeconds(5);
+
+    private static String HEADER_KEY = "website";
+    private static String HEADER_VALUE = "mywebsite.com";
 
     @BeforeAll
     @SneakyThrows
@@ -98,7 +104,17 @@ public class KafkaTestContainersLiveTest {
         assertNotNull(admin);
         assertNotNull(producer);
         assertNotNull(consumer);
+
+        //Check the creation of the topic
+        String topicCommand = "/usr/bin/kafka-topics --bootstrap-server=localhost:9092 --list";
+        String stdout = KAFKA_CONTAINER.execInContainer("/bin/sh", "-c", topicCommand)
+                .getStdout();
+
+        assertThat(stdout).contains(PARTITION_TOPIC);
+
+        log.info("Kafka container is loaded");
     }
+
 
     @AfterAll
     public static void destroy() {
@@ -113,26 +129,34 @@ public class KafkaTestContainersLiveTest {
         List<String> sentMsgList = new ArrayList<>();
         List<String> receivedMsgList = new ArrayList<>();
 
-        for (int i = 1; i <= 10; i++) {
-            String sentMsg = "ID-" + UUID.randomUUID();
-            ProducerRecord<Integer, String> producerRecord = new ProducerRecord<>(PARTITION_TOPIC, i, sentMsg);
+        List<Header> headers = new ArrayList<>();
+        headers.add(new RecordHeader(HEADER_KEY, HEADER_VALUE.getBytes()));
+
+        for (int msgKey = 1; msgKey <= 10; msgKey++) {
+            String msgValue = "ID-" + UUID.randomUUID();
+            ProducerRecord<Integer, String> producerRecord = new ProducerRecord<>(PARTITION_TOPIC, null, msgKey, msgValue, headers);
             Future<RecordMetadata> future = producer.send(producerRecord);
-            sentMsgList.add(sentMsg);
+            sentMsgList.add(msgValue);
             RecordMetadata metadata = future.get();
-            log.info("Msg ID : {}, Partition : {}", sentMsg, metadata.partition());
+            log.info("Message sent => Key : {}, Value : {}, Partition : {}", msgKey, msgValue, metadata.partition());
         }
 
         consumer.subscribe(List.of(PARTITION_TOPIC));
         ConsumerRecords<Integer, String> consumerRecords = consumer.poll(TIMEOUT_WAIT_FOR_MESSAGES);
         consumerRecords.forEach(record -> {
-            String receivedMsg = record.value();
-            receivedMsgList.add(receivedMsg);
-            log.info("Msg ID: " + receivedMsg);
+            Integer msgKey = record.key();
+            String msgValue = record.value();
+            receivedMsgList.add(msgValue);
+
+            Headers consumedHeaders = record.headers();
+            assertNotNull(consumedHeaders);
+            for (Header header : consumedHeaders) {
+                assertEquals(HEADER_KEY, header.key());
+                assertEquals(HEADER_VALUE, new String(header.value()));
+            }
+            log.info("Message received => Key : {}, Value : {}, Partition : {}", msgKey, msgValue, record.partition());
         });
 
         assertThat(receivedMsgList).containsExactlyInAnyOrderElementsOf(sentMsgList);
-        //assertEquals(1, consumerRecords.count());
-
-
     }
 }

@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Profile;
 
 @Configuration
 @Profile("default")
-public class KafkaConfiguration {
+public class KafkaDefaultConfiguration {
 
     @Autowired
     private KafkaProperties kafkaProperties;
