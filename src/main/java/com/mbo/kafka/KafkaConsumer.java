@@ -2,19 +2,16 @@ package com.mbo.kafka;
 
 import java.util.concurrent.CountDownLatch;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 @Component
 @Profile("custom")
+@Slf4j
 public class KafkaConsumer {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaConsumer.class);
 
     private CountDownLatch latch = new CountDownLatch(1);
 
@@ -22,7 +19,7 @@ public class KafkaConsumer {
 
     @KafkaListener(topics = "${test.topic}", groupId = "${test.groupid}")
     public void receive(ConsumerRecord<?, ?> consumerRecord) {
-        LOGGER.info("received payload='{}'", consumerRecord.toString());
+        log.info("received payload='{}'", consumerRecord.toString());
 
         payload = consumerRecord.toString();
         latch.countDown();
